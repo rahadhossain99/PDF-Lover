@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF LOVER | Professional Enterprise System</title>
+    <!-- Tailwind CSS এবং প্রফেশনাল লাইব্রেরি -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --pdf-red: #f43f5e;
+            --pdf-dark: #0f172a;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        /* প্রিমিয়াম এনিমেশন এবং ট্রানজিশন */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid rgba(244, 63, 94, 0.1);
+        }
+
+        .premium-card {
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .premium-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(244, 63, 94, 0.15);
+        }
+
+        /* মার্জিন ভিজ্যুয়ালাইজার এনিমেশন */
+        .margin-box {
+            width: 40px;
+            height: 50px;
+            border: 2px solid #cbd5e1;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .margin-inner {
+            position: absolute;
+            background: rgba(244, 63, 94, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        /* পেজ সাইজ ভিজ্যুয়ালাইজার */
+        .size-box {
+            width: 40px;
+            height: 50px;
+            border: 2px solid #64748b;
+            background: #f1f5f9;
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 900;
+            color: #64748b;
+        }
+
+        /* ড্র্যাগ পজিশন ইন্ডিকেটর (লাল কালি) */
+        .drag-label {
+            color: #f43f5e;
+            font-weight: 900;
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            animation: slideInUp 0.6s forwards;
+        }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* প্রিমিয়াম মোড আনলক এনিমেশন */
+        .premium-unlocked {
+            animation: glow 1.5s infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 5px #f43f5e; }
+            to { box-shadow: 0 0 20px #f43f5e; }
+        }
+
+        .loader-path {
+            stroke: #f43f5e;
+            stroke-dasharray: 150, 200;
+            stroke-dashoffset: -10;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+
+        @keyframes dash {
+            0% { stroke-dashoffset: 0; }
+            50% { stroke-dashoffset: -35; }
+            100% { stroke-dashoffset: -124; }
+        }
+
+        /* Lightbox Modal */
+        #lightbox {
+            display: none;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- হেডার নেভিগেশন -->
+    <header class="glass-effect sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex flex-wrap justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-rose-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-rose-200 rotate-3">
+                    <i data-lucide="layers" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tighter leading-none">PDF LOVER</h1>
+                    <p class="text-[10px] font-bold text-rose-500 uppercase tracking-[4px]">Enterprise Edition</p>
+                </div>
+            </div>
+
+            <div id="nav-actions" class="hidden flex items-center gap-6 mt-4 md:mt-0">
+                <!-- ড্র্যাগ লক সুইচ -->
+                <div class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">রি-অর্ডার লক</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="lock-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-rose-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                </div>
+                
+                <button id="clear-all" class="p-3 text-slate-400 hover:text-rose-600 transition-colors">
+                    <i data-lucide="refresh-ccw" class="w-6 h-6"></i>
+                </button>
+
+                <button id="download-trigger" class="bg-rose-600 hover:bg-rose-700 text-white px-10 py-4 rounded-3xl font-black shadow-2xl shadow-rose-200 flex items-center gap-3 transition-all active:scale-95">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    পিডিএফ তৈরি করুন
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-10 max-w-7xl">
+
+        <!-- অ্যাডভান্সড সেটিংস কার্ড -->
+        <section id="settings-panel" class="hidden mb-12 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                
+                <!-- ১. ফাইলের নাম -->
+                <div class="bg-white p-6 rounded-[35px] shadow-sm border border-slate-100">
+                    <label class="text-[10px] font-black text-slate-400 uppercase mb-4 block tracking-widest">ফাইল নেম</label>
+                    <div class="flex items-center gap-3 bg-slate-50 p-1 rounded-2xl">
+                        <i data-lucide="edit-3" class="w-5 h-5 ml-3 text-rose-500"></i>
+                        <input type="text" id="pdf-filename" value="PDF_LOVER_EXPORT" class="w-full bg-transparent border-none p-3 outline-none font-bold text-slate-700">
+                    </div>
+                </div>
+
+                <!-- ২. মার্জিন ভিজ্যুয়ালাইজার -->
+                <div class="bg-white p-6 rounded-[35px] shadow-sm border border-slate-100">
+                    <label class="text-[10px] font-black text-slate-400 uppercase mb-4 block tracking-widest">মার্জিন সিলেকশন</label>
+                    <div class="flex items-center gap-4">
+                        <div class="margin-box" id="viz-box">
+                            <div class="margin-inner" id="viz-inner"></div>
+                        </div>
+                        <select id="pdf-margin" class="flex-1 bg-slate-50 border-none rounded-2xl p-4 outline-none font-bold text-slate-700 cursor-pointer">
+                            <option value="0">নো মার্জিন (0mm)</option>
+                            <option value="10" selected>স্ট্যান্ডার্ড (10mm)</option>
+                            <option value="20">ওয়াইড (20mm)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ৩. পেজ সাইজ ভিজ্যুয়ালাইজার -->
+                <div class="bg-white p-6 rounded-[35px] shadow-sm border border-slate-100">
+                    <label class="text-[10px] font-black text-slate-400 uppercase mb-4 block tracking-widest">পেপার সাইজ</label>
+                    <div class="flex items-center gap-4">
+                        <div class="size-box" id="size-viz">A4</div>
+                        <select id="pdf-size" class="flex-1 bg-slate-50 border-none rounded-2xl p-4 outline-none font-bold text-slate-700 cursor-pointer">
+                            <option value="a4" selected>A4 (Standard)</option>
+                            <option value="a3">A3 (Large)</option>
+                            <option value="letter">Letter</option>
+                            <option value="legal">Legal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ৪. প্রিমিয়াম লক (পাসওয়ার্ড ৯৯) -->
+                <div class="bg-white p-6 rounded-[35px] shadow-sm border border-slate-100 transition-all" id="premium-box">
+                    <label class="text-[10px] font-black text-slate-400 uppercase mb-4 block tracking-widest">প্রিমিয়াম এক্সেস</label>
+                    <div id="password-area">
+                        <input type="password" id="premium-pass" placeholder="পাসওয়ার্ড লিখুন..." class="w-full bg-slate-100 border-none rounded-2xl p-4 outline-none font-bold text-slate-700 placeholder:text-slate-300">
+                    </div>
+                    <div id="premium-options" class="hidden space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="checkbox" id="hide-brand" class="w-5 h-5 accent-rose-600">
+                            <span class="text-xs font-bold text-slate-600 group-hover:text-rose-600 transition">ব্র্যান্ডিং রিমুভ করুন</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="checkbox" id="hide-pages" class="w-5 h-5 accent-rose-600">
+                            <span class="text-xs font-bold text-slate-600 group-hover:text-rose-600 transition">পেজ নাম্বার রিমুভ করুন</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ইমেজ আপলোড জোন -->
+        <div id="upload-zone" class="bg-white p-20 md:p-32 rounded-[60px] text-center border-4 border-dashed border-slate-200 cursor-pointer hover:border-rose-400 transition-all duration-700 group relative overflow-hidden shadow-sm">
+            <input type="file" id="image-input" class="hidden" multiple accept="image/*">
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-32 h-32 bg-rose-50 text-rose-500 rounded-[45px] flex items-center justify-center mb-10 group-hover:scale-110 group-hover:rotate-12 transition-all duration-700 shadow-inner">
+                    <i data-lucide="plus" class="w-16 h-16"></i>
+                </div>
+                <h2 class="text-5xl font-black text-slate-800 mb-4 tracking-tighter">নতুন ইমেজ সিলেক্ট করুন</h2>
+                <p class="text-slate-400 font-bold uppercase tracking-[5px] text-xs">গ্যালারি থেকে আপনার পছন্দের সিরিয়ালে সিলেক্ট করুন</p>
+            </div>
+            <!-- Decorative elements -->
+            <div class="absolute -top-20 -left-20 w-80 h-80 bg-rose-50 rounded-full opacity-40 blur-3xl"></div>
+            <div class="absolute -bottom-20 -right-20 w-80 h-80 bg-rose-50 rounded-full opacity-40 blur-3xl"></div>
+        </div>
+
+        <!-- প্রিভিউ লিস্ট -->
+        <div id="preview-list" class="hidden mt-20">
+            <div class="flex items-center justify-between mb-10 border-b-2 border-slate-100 pb-6">
+                <div class="flex items-center gap-4">
+                    <div class="bg-slate-900 text-white px-6 py-2 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-200">
+                        মোট ছবি: <span id="counter" class="text-rose-500">0</span>
+                    </div>
+                    <p id="sort-msg" class="hidden text-sm font-black text-rose-500 animate-pulse flex items-center gap-2">
+                        <i data-lucide="move" class="w-4 h-4"></i> রি-অর্ডার মোড একটিভ
+                    </p>
+                </div>
+            </div>
+
+            <div id="image-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-10">
+                <!-- ডাইনামিক কার্ড এখানে আসবে -->
+            </div>
+        </div>
+
+        <!-- খালি অবস্থা -->
+        <div id="empty-state" class="text-center py-32 opacity-10">
+            <i data-lucide="image" class="w-32 h-32 mx-auto mb-6 text-slate-400"></i>
+            <p class="font-black uppercase tracking-[15px] text-slate-800">No Content</p>
+        </div>
+
+    </main>
+
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <button id="close-lightbox" class="absolute top-6 right-6 text-white p-3 hover:bg-white/10 rounded-full transition">
+            <i data-lucide="x" class="w-10 h-10"></i>
+        </button>
+        <div class="max-w-4xl w-full h-full flex items-center justify-center">
+            <img id="lightbox-img" src="" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl scale-95 transition-transform duration-500">
+        </div>
+    </div>
+
+    <!-- প্রফেশনাল লোডার -->
+    <div id="pdf-loader" class="fixed inset-0 bg-slate-900/98 backdrop-blur-2xl hidden z-[100] flex flex-col items-center justify-center">
+        <svg class="w-24 h-24 mb-8" viewBox="0 0 50 50">
+            <circle class="loader-path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+        </svg>
+        <h3 class="text-white text-4xl font-black tracking-tighter">পিডিএফ জেনারেট হচ্ছে</h3>
+        <p class="text-rose-500 font-black uppercase tracking-[10px] text-[12px] mt-4">PDF LOVER Engine v6.0</p>
+    </div>
+
+    <!-- টোস্ট নোটিফিকেশন -->
+    <div id="toast" class="fixed bottom-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-[30px] shadow-2xl transition-all duration-500 opacity-0 translate-y-10 z-[110] flex items-center gap-4 border border-slate-800">
+        <i data-lucide="shield-check" class="text-rose-500 w-6 h-6"></i>
+        <span id="toast-text" class="font-bold">সফলভাবে সম্পন্ন হয়েছে!</span>
+    </div>
+
+    <!-- সিগনেচার ফুটার -->
+    <footer class="py-20 border-t border-slate-200 mt-20 text-center">
+        <p class="text-[10px] font-black text-slate-300 uppercase tracking-[20px]">© PDF LOVER ENTERPRISE SYSTEM</p>
+    </footer>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let imageStack = [];
+        let sortableInstance;
+
+        // Elements
+        const imageInput = document.getElementById('image-input');
+        const uploadZone = document.getElementById('upload-zone');
+        const imageGrid = document.getElementById('image-grid');
+        const counter = document.getElementById('counter');
+        const settingsPanel = document.getElementById('settings-panel');
+        const previewList = document.getElementById('preview-list');
+        const emptyState = document.getElementById('empty-state');
+        const navActions = document.getElementById('nav-actions');
+        const pdfLoader = document.getElementById('pdf-loader');
+        const lockToggle = document.getElementById('lock-toggle');
+        const sortMsg = document.getElementById('sort-msg');
+        const vizInner = document.getElementById('viz-inner');
+        const marginSelect = document.getElementById('pdf-margin');
+        const sizeSelect = document.getElementById('pdf-size');
+        const sizeViz = document.getElementById('size-viz');
+        const premiumPass = document.getElementById('premium-pass');
+        const premiumOptions = document.getElementById('premium-options');
+        const premiumBox = document.getElementById('premium-box');
+        
+        // Lightbox
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const closeLightbox = document.getElementById('close-lightbox');
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        // ১. মার্জিন ভিজ্যুয়ালাইজার লজিক
+        function updateMarginViz() {
+            const val = parseInt(marginSelect.value);
+            if(val === 0) vizInner.style.inset = "0px";
+            else if(val === 10) vizInner.style.inset = "6px";
+            else vizInner.style.inset = "12px";
+        }
+        marginSelect.onchange = updateMarginViz;
+        updateMarginViz();
+
+        // ২. পেজ সাইজ ভিজ্যুয়ালাইজার লজিক
+        function updateSizeViz() {
+            const val = sizeSelect.value;
+            sizeViz.innerText = val.toUpperCase();
+            
+            // Adjust proportions based on size
+            if(val === 'a4') {
+                sizeViz.style.width = "40px";
+                sizeViz.style.height = "55px";
+            } else if(val === 'a3') {
+                sizeViz.style.width = "50px";
+                sizeViz.style.height = "70px";
+            } else if(val === 'letter') {
+                sizeViz.style.width = "45px";
+                sizeViz.style.height = "55px";
+            } else if(val === 'legal') {
+                sizeViz.style.width = "40px";
+                sizeViz.style.height = "75px";
+            }
+        }
+        sizeSelect.onchange = updateSizeViz;
+        updateSizeViz();
+
+        // ৩. প্রিমিয়াম আনলক লজিক (Password 99)
+        premiumPass.oninput = (e) => {
+            if(e.target.value === "99") {
+                document.getElementById('password-area').classList.add('hidden');
+                premiumOptions.classList.remove('hidden');
+                premiumBox.classList.add('premium-unlocked', 'border-rose-500', 'bg-rose-50');
+                showToast("প্রিমিয়াম মোড আনলক হয়েছে!");
+            }
+        };
+
+        // ৪. রি-অর্ডার সর্টেবল লজিক
+        function initSort() {
+            sortableInstance = new Sortable(imageGrid, {
+                animation: 500,
+                disabled: true,
+                ghostClass: 'opacity-10',
+                onStart: (evt) => {
+                    evt.item.dataset.oldIdx = evt.oldIndex;
+                },
+                onEnd: (evt) => {
+                    const from = parseInt(evt.item.dataset.oldIdx) + 1;
+                    const to = evt.newIndex + 1;
+                    if (from !== to) {
+                        showPosLabel(evt.item, from, to);
+                        syncInternalArray();
+                        updateNumbers();
+                    }
+                }
+            });
+        }
+        initSort();
+
+        lockToggle.onchange = (e) => {
+            const active = e.target.checked;
+            sortableInstance.option('disabled', !active);
+            sortMsg.classList.toggle('hidden', !active);
+            imageGrid.classList.toggle('ring-8', active);
+            imageGrid.classList.toggle('ring-rose-50', active);
+            imageGrid.classList.toggle('p-10', active);
+            imageGrid.classList.toggle('rounded-[60px]', active);
+            showToast(active ? "রি-অর্ডার মোড সক্রিয়" : "রি-অর্ডার মোড লক করা হয়েছে");
+        };
+
+        // ৫. ফাইল হ্যান্ডলিং (গ্যালারি সিলেকশন অর্ডার অনুযায়ী)
+        uploadZone.onclick = () => imageInput.click();
+        imageInput.onchange = (e) => processImages(e.target.files);
+
+        async function processImages(files) {
+            const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
+            
+            for (const file of fileArray) {
+                const reader = new FileReader();
+                await new Promise((resolve) => {
+                    reader.onload = (event) => {
+                        const id = 'pl_' + Math.random().toString(36).substr(2, 9);
+                        const item = { id, src: event.target.result };
+                        imageStack.push(item);
+                        renderImageCard(item);
+                        refreshUI();
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        function renderImageCard(item) {
+            const card = document.createElement('div');
+            card.className = 'premium-card bg-white p-4 rounded-[45px] relative overflow-visible group select-none shadow-sm border border-slate-100';
+            card.dataset.id = item.id;
+            
+            card.innerHTML = `
+                <!-- ইনডেক্স ব্যাজ -->
+                <div class="idx-num absolute -top-5 -left-5 w-14 h-14 bg-slate-900 text-white rounded-3xl flex items-center justify-center font-black text-xl border-4 border-white shadow-2xl z-20 group-hover:bg-rose-600 transition-colors">
+                    ${imageStack.length}
+                </div>
+
+                <!-- প্রিভিউ বক্স -->
+                <div class="aspect-square rounded-[35px] bg-slate-50 overflow-hidden relative shadow-inner cursor-zoom-in" onclick="openFullPreview('${item.id}')">
+                    <img src="${item.src}" class="w-full h-full object-cover">
+                    <!-- পজিশন ট্র্যাকার এরিয়া -->
+                    <div class="pos-label-container absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center w-full z-10"></div>
+                </div>
+
+                <!-- ডিলিট বাটন -->
+                <div class="mt-4 flex justify-end px-2">
+                    <button onclick="removeImg('${item.id}')" class="text-slate-200 hover:text-rose-500 transition-colors p-2 bg-slate-50 rounded-2xl">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            `;
+            
+            imageGrid.appendChild(card);
+            lucide.createIcons();
+        }
+
+        // ৬. ইমেজ প্রিভিউ (Lightbox) লজিক
+        window.openFullPreview = function(id) {
+            const item = imageStack.find(i => i.id === id);
+            if(item) {
+                lightboxImg.src = item.src;
+                lightbox.style.display = 'flex';
+                setTimeout(() => {
+                    lightboxImg.classList.replace('scale-95', 'scale-100');
+                }, 10);
+            }
+        };
+
+        closeLightbox.onclick = () => {
+            lightboxImg.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => {
+                lightbox.style.display = 'none';
+            }, 300);
+        };
+
+        lightbox.onclick = (e) => {
+            if(e.target === lightbox || e.target.id === 'lightbox-img-container') closeLightbox.onclick();
+        };
+
+        function showPosLabel(el, from, to) {
+            const container = el.querySelector('.pos-label-container');
+            const label = document.createElement('div');
+            label.className = 'drag-label bg-white/90 px-4 py-1.5 rounded-full shadow-lg border border-rose-100 flex items-center gap-2';
+            label.innerHTML = `(${from} <i data-lucide="chevron-right" class="w-3 h-3 text-rose-600"></i> ${to})`;
+            container.innerHTML = '';
+            container.appendChild(label);
+            lucide.createIcons();
+            setTimeout(() => label.remove(), 3000);
+        }
+
+        function removeImg(id) {
+            imageStack = imageStack.filter(i => i.id !== id);
+            const el = imageGrid.querySelector(`[data-id="${id}"]`);
+            el.classList.add('scale-0', 'opacity-0');
+            setTimeout(() => {
+                el.remove();
+                refreshUI();
+                updateNumbers();
+            }, 400);
+        }
+
+        function refreshUI() {
+            const count = imageStack.length;
+            counter.innerText = count;
+            const active = count > 0;
+            settingsPanel.classList.toggle('hidden', !active);
+            previewList.classList.toggle('hidden', !active);
+            navActions.classList.toggle('hidden', !active);
+            emptyState.classList.toggle('hidden', active);
+        }
+
+        function updateNumbers() {
+            const badges = imageGrid.querySelectorAll('.idx-num');
+            badges.forEach((b, i) => b.innerText = i + 1);
+        }
+
+        function syncInternalArray() {
+            const domElements = Array.from(imageGrid.children);
+            imageStack = domElements.map(el => {
+                const id = el.dataset.id;
+                return imageStack.find(i => i.id === id);
+            });
+        }
+
+        document.getElementById('clear-all').onclick = () => {
+            if(confirm("আপনি কি সব ক্লিয়ার করতে চান?")) {
+                imageStack = [];
+                imageGrid.innerHTML = '';
+                refreshUI();
+            }
+        };
+
+        // ৭. মাস্টার পিডিএফ জেনারেটর (No Stretching)
+        document.getElementById('download-trigger').onclick = async () => {
+            if(imageStack.length === 0) return;
+            pdfLoader.classList.remove('hidden');
+
+            setTimeout(async () => {
+                const filename = document.getElementById('pdf-filename').value || 'PDF_LOVER';
+                const format = document.getElementById('pdf-size').value;
+                const margin = parseInt(document.getElementById('pdf-margin').value);
+                
+                const isPremium = premiumPass.value === "99";
+                const hideBrand = isPremium && document.getElementById('hide-brand').checked;
+                const hidePages = isPremium && document.getElementById('hide-pages').checked;
+
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: format
+                });
+
+                const pw = doc.internal.pageSize.getWidth();
+                const ph = doc.internal.pageSize.getHeight();
+
+                for (let i = 0; i < imageStack.length; i++) {
+                    if (i > 0) doc.addPage();
+
+                    const img = new Image();
+                    img.src = imageStack[i].src;
+                    
+                    await new Promise(resolve => {
+                        img.onload = () => {
+                            const safeMargin = margin;
+                            const maxW = pw - (safeMargin * 2);
+                            const maxH = ph - (safeMargin * 4);
+
+                            const imgRatio = img.width / img.height;
+                            const pageRatio = maxW / maxH;
+
+                            let dw, dh;
+                            if (imgRatio > pageRatio) {
+                                dw = maxW;
+                                dh = dw / imgRatio;
+                            } else {
+                                dh = maxH;
+                                dw = dh * imgRatio;
+                            }
+
+                            const x = (pw - dw) / 2;
+                            const y = (ph - dh - (safeMargin * 1.5)) / 2;
+
+                            doc.addImage(imageStack[i].src, 'JPEG', x, y, dw, dh, undefined, 'FAST');
+                            
+                            doc.setFontSize(10);
+                            doc.setTextColor(150);
+                            doc.setFont('helvetica', 'bold');
+                            
+                            if(!hideBrand) {
+                                doc.text("© PDF LOVER", pw / 2, ph - 12, { align: 'center' });
+                            }
+                            
+                            if(!hidePages) {
+                                doc.setFontSize(8);
+                                doc.setTextColor(200);
+                                doc.text(`Page ${i + 1} of ${imageStack.length}`, pw / 2, ph - 7, { align: 'center' });
+                            }
+
+                            resolve();
+                        };
+                    });
+                }
+
+                doc.save(`${filename}.pdf`);
+                pdfLoader.classList.add('hidden');
+                showToast("পিডিএফ ডাউনলোড শুরু হয়েছে!");
+            }, 800);
+        };
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = msg;
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 3500);
+        }
+
+    </script>
+</body>
+</html>
